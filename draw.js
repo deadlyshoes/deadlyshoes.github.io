@@ -191,7 +191,7 @@ async function saveShapes() {
 
 		console.log(data);
 
-		const response = await fetch('http://localhost:5192/api/Shape', {
+		const response = await fetch('https://drawapi-production.up.railway.app/api/Shape', {
 			method: 'POST',
 			mode: 'cors',
 			headers: {
