@@ -5,10 +5,11 @@ class Point {
 	}
 }
 
-class Line {
+class Shape {
 	constructor() {
-		this.nPoints = 2;
+		this.nPoints = 0;
 		this.points = [];
+		this.modified = false;
 	}
 
 	getNextPoint() {
@@ -18,6 +19,14 @@ class Line {
 		let newPoint = new Point();
 		this.points.push(newPoint);
 		return newPoint;
+	}
+}
+
+class Line extends Shape {
+	constructor() {
+		super();
+		this.nPoints = 2;
+		this.type = "Line";
 	}
 
 	draw(gl, programInfo) {
@@ -57,6 +66,59 @@ class Line {
 	}
 }
 
+class Box extends Shape {
+	constructor() {
+		super();
+		this.nPoints = 2;
+		this.type = "Box";
+	}
+
+	draw(gl, programInfo) {
+		if (this.points.length != this.nPoints)
+			return;
+
+		const numComponents = 2;
+		const type = gl.FLOAT;
+		const normalize = false;
+		const stride = 0;
+		const offset = 0;
+
+		let vertices = [];
+		for (let i = 0; i < 2; i++) {
+			// horizontal
+			vertices.push(this.points[i].x);
+			vertices.push(this.points[i].y);
+			vertices.push(this.points[(i + 1) % 2].x);
+			vertices.push(this.points[i].y);
+
+			// vertical
+			vertices.push(this.points[i].x);
+			vertices.push(this.points[i].y);
+			vertices.push(this.points[i].x);
+			vertices.push(this.points[(i + 1) % 2].y);
+		}
+
+		let vertexBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+		gl.vertexAttribPointer(
+			programInfo.attribLocations.vertexPosition,
+			numComponents,
+			type,
+			normalize,
+			stride,
+			offset
+		);
+		gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+  	const vertexCount = 8;
+  	gl.drawArrays(gl.LINES, offset, vertexCount);
+	}
+}
+
 const vs = `
 attribute vec2 vPosition;
 void main() {
@@ -72,8 +134,18 @@ void main() {
 let currentCursorX = 0;
 let currentCursorY = 0;
 let currentPoint = new Point();
-let currentLine = null;
-let lines = [];
+let currentShape = null;
+let Mode = "Box";
+let shapes = [];
+
+function getNewShapeObject(type) {
+	if (type == "Line")
+		return new Line();
+	else if (type == "Box")
+		return new Box();
+	else
+		return null;
+}
 
 function loadShader(gl, type, source) {
 	const shader = gl.createShader(type);
@@ -114,12 +186,12 @@ function drawScene(gl, programInfo) {
 
 	gl.useProgram(programInfo.program);
 
-	if (currentLine != null) {
-		currentLine.draw(gl, programInfo);
+	if (currentShape != null) {
+		currentShape.draw(gl, programInfo);
 	}
 
-	for (let i = 0; i < lines.length; i++) {
-		lines[i].draw(gl, programInfo);
+	for (let i = 0; i < shapes.length; i++) {
+		shapes[i].draw(gl, programInfo);
 	}
 }
 
@@ -152,23 +224,56 @@ function main() {
 	});
 
 	canvas.addEventListener("click", e => {
-		if (currentLine == null) {
-			currentLine = new Line();
+		if (Mode == "Line") {
+			if (currentShape == null) {
+				currentShape = new Line();
 
-			currentPoint = currentLine.getNextPoint();
-			currentPoint.x = currentCursorX;
-			currentPoint.y = currentCursorY;
+				currentPoint = currentShape.getNextPoint();
+				currentPoint.x = currentCursorX;
+				currentPoint.y = currentCursorY;
 
-			currentPoint = currentLine.getNextPoint();
-			currentPoint.x = currentCursorX;
-			currentPoint.y = currentCursorY;
-		} else {
-			let lineCopy = new Line();
-			lineCopy.points = currentLine.points;
-			lines.push(lineCopy);
-			currentLine = null;
-			currentPoint = new Point();
+				currentPoint = currentShape.getNextPoint();
+				currentPoint.x = currentCursorX;
+				currentPoint.y = currentCursorY;	
+			} else {
+				let lineCopy = new Line();
+				lineCopy.points = currentShape.points;
+				lineCopy.modified = true;
+				document.getElementById("saveButton").disabled = false;
+				shapes.push(lineCopy);
+				currentShape = null;
+				currentPoint = new Point();
+			}
+		} else if (Mode == "Box") {
+			if (currentShape == null) {
+				currentShape = new Box();
+
+				currentPoint = currentShape.getNextPoint();
+				currentPoint.x = currentCursorX;
+				currentPoint.y = currentCursorY;
+
+				currentPoint = currentShape.getNextPoint();
+				currentPoint.x = currentCursorX;
+				currentPoint.y = currentCursorY;	
+			} else {
+				let boxCopy = new Box();
+				boxCopy.points = currentShape.points;
+				boxCopy.modified = true;
+				document.getElementById("saveButton").disabled = false;
+				shapes.push(boxCopy);
+				currentShape = null;
+				currentPoint = new Point();
+			}
 		}
+	});
+
+	document.addEventListener("keydown", (event) => {
+		console.log(event.key);
+
+		if (event.key == "l")
+			Mode = "Line";
+		else if (event.key == "b")
+			Mode = "Box";
 	});
 
 	function render(now) {
