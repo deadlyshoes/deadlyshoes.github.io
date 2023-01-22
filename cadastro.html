@@ -3,12 +3,12 @@
 		<title>Cadastro</title>
 	</head>
 	<body>
-		<form action="https://drawapi-production.up.railway.app/api/User" method="POST">
+		<form action="https://localhost:7053/api/User" method="POST">
 			<label for="flogin">Login:</label>
-			<input type="text" name="login" id="flogin" /><br><br>
+			<input type="text" name="login" id="flogin" required /><br><br>
 			<label for="flogin">Password:</label>
-			<input type="text" name="password" id="fpassword" /><br><br>
-			<input type="submit" value="Cadastrar" />
+			<input type="text" name="password" id="fpassword" required /><br><br>
+			<input onclick='window.location.href="./index.html";' type="submit" value="Cadastrar" />
 		</form>
 	</body>
 </html>
