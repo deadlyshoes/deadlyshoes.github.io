@@ -214,8 +214,13 @@ function main() {
 	};
 
 	canvas.addEventListener("mousemove", e => {
-		currentCursorX = 2.0 * (e.clientX / canvas.width) - 1.0;
-		currentCursorY = 1.0 - 2.0 * (e.clientY / canvas.height);
+		let rect = canvas.getBoundingClientRect();
+
+		let posX = (e.clientX - rect.left) * canvas.width / canvas.clientWidth;
+		let posY = (e.clientY - rect.top) * canvas.height / canvas.clientHeight;
+
+		currentCursorX = posX / canvas.width * 2.0 - 1.0;
+		currentCursorY = posY / canvas.height * -2.0 + 1.0;
 
 		if (currentPoint != null) {
 			currentPoint.x = currentCursorX;
