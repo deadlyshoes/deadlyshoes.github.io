@@ -292,24 +292,68 @@ function main() {
 }
 
 async function saveShapes() {
-	for (let i = 0; i < lines.length; i++) {
+	document.getElementById("saveButton").disabled = true;
+	let enableButton = false;
+
+	for (let i = 0; i < shapes.length; i++) {
+		if (shapes[i].modified == false)
+			continue;
+
+		shapes[i].modified = false;
+
 		let data = {
-			"type": "Line",
-			"points": lines[i].points,
-			"userId": 0
+			"type": shapes[i].type,
+			"points": [],
+			"userId": sessionStorage.getItem("userId")
 		};
+		for (let j = 0; j < shapes[i].points.length; j++) {
+			data["points"].push(shapes[i].points[j].x);
+			data["points"].push(shapes[i].points[j].y);
+		}
 
 		console.log(data);
 
-		const response = await fetch('https://drawapi-production.up.railway.app/api/Shape', {
+		const response = await fetch('https://localhost:7053/api/Shape', {
 			method: 'POST',
 			mode: 'cors',
 			headers: {
-				'Access-Control-Allow-Origin': '*',
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify(data)
+		}).then((response) => { 
+			if (response.ok)
+				;
+			else
+				shapes[i].modified = true;
+				enableButton = true;
 		});
+	}
+
+	if (enableButton)
+		document.getElementById("saveButton").disabled = false;
+}
+
+async function loadShapes() {
+	document.getElementById("loadButton").disabled = false;
+
+	const response = await fetch('https://localhost:7053/api/Shape/user/' + '1', {
+		method: 'GET',
+		mode: 'cors'
+	});
+	if (response.ok) {
+		let loadedShapes = await response.json();
+		for (let i = 0; i < loadedShapes.length; i++) {
+			let aShape = getNewShapeObject(loadedShapes[i].type);
+			for (let j = 0; j < loadedShapes[i].points.length / 2; j++) {
+				let newPoint = new Point();
+				newPoint.x = loadedShapes[i].points[2 * j];
+				newPoint.y = loadedShapes[i].points[2 * j + 1];
+				aShape.points.push(newPoint);
+			}
+			shapes.push(aShape);
+		}
+	} else {
+		document.getElementById("loadButton").disabled = false;
 	}
 }
 
